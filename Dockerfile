@@ -39,4 +39,8 @@ COPY --from=model /model /model
 # The Worker sends it as `Authorization: Bearer <key>` on /embed and /health.
 ENV HF_HUB_OFFLINE=1
 EXPOSE 80
-CMD ["--model-id", "/model", "--port", "80", "--max-client-batch-size", "32", "--auto-truncate"]
+# --max-batch-tokens: TEI's default (16384) makes the startup warm-up and the
+# attention buffers size for 8192-token inputs, which does not fit in 4 GiB next
+# to the ~2.3 GB of weights. The assistants embed short questions and site-text
+# chunks, so 2048 is plenty; --auto-truncate cuts anything longer.
+CMD ["--model-id", "/model", "--port", "80", "--max-client-batch-size", "32", "--max-batch-tokens", "2048", "--auto-truncate"]
