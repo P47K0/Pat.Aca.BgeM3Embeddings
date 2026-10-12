@@ -8,9 +8,9 @@ Same model as Cloudflare Workers AI `@cf/baai/bge-m3` and the local Ollama `bge-
 measured cosine against Ollama is 0.99995+ on PT/EN sentences, so the vectors are
 interchangeable with the ones already stored.
 
-History: it was built as a fallback for the sites-template assistants when Workers AI ran
-out of daily neurons (handoff `2026-10-12-bge-m3-aca-fallback.md`, sites-template issue #401).
-The assistants no longer use it; only batch callers do.
+History: it was first built as a fallback for another project's AI assistants when
+Workers AI ran out of its daily free neurons. Those assistants no longer use it; only batch
+callers do.
 
 ## What it is
 
