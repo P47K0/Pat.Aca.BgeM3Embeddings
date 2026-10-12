@@ -1,0 +1,81 @@
+name: Build & deploy bge-m3 server
+
+# Manual-trigger only, matching the other Pat.Aca.* repos.
+# Image goes to Docker Hub, the same registry the sibling ACA apps use.
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: dev
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ vars.DOCKERHUB_USERNAME }}/bge-m3-tei:latest
+            ${{ vars.DOCKERHUB_USERNAME }}/bge-m3-tei:${{ github.sha }}
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # EMBEDDING_API_KEY is a GitHub secret holding the long random key the
+      # Worker will also get as EMBEDDING_FALLBACK_KEY. It is stored as an ACA
+      # secret and referenced from the env, never passed as a plain env var.
+      - name: Update or create Container App
+        uses: azure/CLI@v2
+        with:
+          inlineScript: |
+            set -e
+            NAME=bge-m3-embeddings
+            RG=${{ vars.AZURE_RESOURCE_GROUP }}
+            IMAGE=${{ vars.DOCKERHUB_USERNAME }}/bge-m3-tei:${{ github.sha }}
+
+            if az containerapp show --name "$NAME" --resource-group "$RG" >/dev/null 2>&1; then
+              az containerapp secret set --name "$NAME" --resource-group "$RG" \
+                --secrets api-key="${{ secrets.EMBEDDING_API_KEY }}"
+              az containerapp update --name "$NAME" --resource-group "$RG" \
+                --image "$IMAGE" \
+                --cpu 2 --memory 4Gi \
+                --min-replicas 0 --max-replicas 1 \
+                --scale-rule-name http --scale-rule-type http \
+                --scale-rule-http-concurrency 10 \
+                --set-env-vars API_KEY=secretref:api-key
+            else
+              az containerapp create --name "$NAME" --resource-group "$RG" \
+                --environment ${{ vars.ACA_ENVIRONMENT_NAME }} \
+                --image "$IMAGE" \
+                --ingress external --target-port 80 \
+                --cpu 2 --memory 4Gi \
+                --min-replicas 0 --max-replicas 1 \
+                --scale-rule-name http --scale-rule-type http \
+                --scale-rule-http-concurrency 10 \
+                --secrets api-key="${{ secrets.EMBEDDING_API_KEY }}" \
+                --env-vars API_KEY=secretref:api-key
+            fi
+
+            # cooldownPeriod (seconds before scaling to zero) has no first-class
+            # flag on every CLI version; set it on the app's scale block.
+            az containerapp update --name "$NAME" --resource-group "$RG" \
+              --yaml scripts/scale.yaml
+
+            az containerapp show --name "$NAME" --resource-group "$RG" \
+              --query properties.configuration.ingress.fqdn -o tsv
