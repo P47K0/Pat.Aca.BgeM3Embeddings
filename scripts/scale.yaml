@@ -1,9 +1,10 @@
-# Applied after create/update: min 0 / max 1 and a 600 s cooldown, longer than
-# the Worker's 5-minute /health ping so the app stays warm while the fallback
-# note is active and scales to zero by itself after 00:00 UTC.
+# Applied after create/update: min 1 / max 1. Scale-to-zero measured an 89 s cold
+# start (image pull + model load + warm-up), far over the Worker's 30 s budget,
+# so one replica stays warm. Go back to minReplicas 0 once the image is leaner;
+# the 600 s cooldown is kept for that (longer than the Worker's 5-minute ping).
 properties:
   template:
     scale:
-      minReplicas: 0
+      minReplicas: 1
       maxReplicas: 1
       cooldownPeriod: 600

@@ -31,6 +31,6 @@ P47K0/sites-template (see the handoff).
 
 ## Open items
 
-- Cold start against the 30 s Worker budget is unmeasured until first deploy.
+- Cold start from zero measured 89 s (budget 30 s), so min replicas is 1 for now (about $45-50/month at the idle rate, an estimate). Revisit with a leaner image, e.g. an int8 ONNX build, then go back to scale to zero.
 - Cosine check against Workers AI bge-m3 (expect >= 0.99) is still to do.
 - Cost estimate to be filled in after measuring.

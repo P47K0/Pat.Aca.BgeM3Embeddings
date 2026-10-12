@@ -55,7 +55,7 @@ jobs:
               az containerapp update --name "$NAME" --resource-group "$RG" \
                 --image "$IMAGE" \
                 --cpu 2 --memory 4Gi \
-                --min-replicas 0 --max-replicas 1 \
+                --min-replicas 1 --max-replicas 1 \
                 --scale-rule-name http --scale-rule-type http \
                 --scale-rule-http-concurrency 10 \
                 --set-env-vars API_KEY=secretref:api-key
@@ -65,7 +65,7 @@ jobs:
                 --image "$IMAGE" \
                 --ingress external --target-port 80 \
                 --cpu 2 --memory 4Gi \
-                --min-replicas 0 --max-replicas 1 \
+                --min-replicas 1 --max-replicas 1 \
                 --scale-rule-name http --scale-rule-type http \
                 --scale-rule-http-concurrency 10 \
                 --secrets api-key="${{ secrets.EMBEDDING_API_KEY }}" \
