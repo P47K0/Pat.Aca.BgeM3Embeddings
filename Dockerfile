@@ -8,7 +8,7 @@ ARG TEI_VERSION=1.9.4
 # safetensors is memory-mapped and noticeably faster to start, which matters
 # against the Worker's 30 s cold-start budget.
 FROM python:3.12-slim AS model
-RUN pip install --no-cache-dir huggingface_hub safetensors torch --extra-index-url https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir huggingface_hub safetensors numpy torch --extra-index-url https://download.pytorch.org/whl/cpu
 WORKDIR /model
 RUN python - <<'PY'
 from huggingface_hub import snapshot_download
